@@ -9,10 +9,10 @@ SRC := $(wildcard src/*.cpp)
 
 ifeq ($(CXX),$(ARM_CXX))
     BUILD_DIR := build/arm
-    CXXFLAGS := -O3
+    CXXFLAGS := -O3 -Iinclude
 else
     BUILD_DIR := build/x86
-    CXXFLAGS :=
+    CXXFLAGS := -Iinclude
 endif
 
 OBJS := $(patsubst src/%.cpp,$(BUILD_DIR)/%.o,$(SRC))
