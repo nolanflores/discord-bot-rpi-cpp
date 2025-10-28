@@ -1,0 +1,5 @@
+cumbot
+build/x86/*.o
+build/arm/*.o
+.vscode/
+discord_token.hpp
