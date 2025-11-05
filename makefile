@@ -17,7 +17,7 @@ endif
 
 OBJS := $(patsubst src/%.cpp,$(BUILD_DIR)/%.o,$(SRC))
 
-LDLIBS := -lboost_system -lpthread -lssl -lcrypto -lpthread
+LDLIBS := -ldpp
 
 all: $(TARGET)
 
@@ -25,7 +25,7 @@ $(TARGET): $(OBJS)
 	$(CXX) -o $@ $^ $(LDLIBS)
 
 $(BUILD_DIR)/%.o: src/%.cpp | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) -std=c++20 $(CXXFLAGS) -c -o $@ $<
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
