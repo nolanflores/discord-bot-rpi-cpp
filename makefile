@@ -9,20 +9,22 @@ SRC := $(wildcard src/*.cpp)
 
 ifeq ($(CXX),$(ARM_CXX))
     BUILD_DIR := build/arm
-    CXXFLAGS := -O3 -Iinclude
+    CXXFLAGS := -Iinclude --sysroot=./sysroot -I./sysroot/usr/include
+    LDFLAGS := --sysroot=./sysroot -L./sysroot/usr/lib/aarch64-linux-gnu -L./sysroot/lib/aarch64-linux-gnu -L./sysroot/usr/lib
+    LDLIBS := -ldpp -lssl -lcrypto -lz
 else
     BUILD_DIR := build/x86
     CXXFLAGS := -Iinclude
+    LDFLAGS :=
+    LDLIBS := -ldpp
 endif
 
 OBJS := $(patsubst src/%.cpp,$(BUILD_DIR)/%.o,$(SRC))
 
-LDLIBS := -ldpp
-
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CXX) -o $@ $^ $(LDLIBS)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 $(BUILD_DIR)/%.o: src/%.cpp | $(BUILD_DIR)
 	$(CXX) -std=c++20 $(CXXFLAGS) -c -o $@ $<
@@ -31,4 +33,6 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 clean:
-	rm -rf build/*.o build/x86/*.o build/arm/*.o $(TARGET)
+	rm -rf build/x86 build/arm $(TARGET)
+
+.PHONY: all clean
