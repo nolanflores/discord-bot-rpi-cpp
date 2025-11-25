@@ -2,4 +2,5 @@ cumbot
 build/x86/*.o
 build/arm/*.o
 .vscode/
+.debfiles/
 discord_token.hpp

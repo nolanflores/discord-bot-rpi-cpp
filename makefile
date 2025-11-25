@@ -11,12 +11,12 @@ ifeq ($(CXX),$(ARM_CXX))
     BUILD_DIR := build/arm
     CXXFLAGS := -Iinclude --sysroot=./sysroot -I./sysroot/usr/include
     LDFLAGS := --sysroot=./sysroot -L./sysroot/usr/lib/aarch64-linux-gnu -L./sysroot/lib/aarch64-linux-gnu -L./sysroot/usr/lib
-    LDLIBS := -ldpp -lssl -lcrypto -lz
+    LDLIBS := -ldpp -lssl -lcrypto -lz -lcurl
 else
     BUILD_DIR := build/x86
     CXXFLAGS := -Iinclude
     LDFLAGS :=
-    LDLIBS := -ldpp
+    LDLIBS := -ldpp -lcurl
 endif
 
 OBJS := $(patsubst src/%.cpp,$(BUILD_DIR)/%.o,$(SRC))
