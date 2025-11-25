@@ -1,0 +1,179 @@
+#!/bin/sh
+#***************************************************************************
+#                                  _   _ ____  _
+#  Project                     ___| | | |  _ \| |
+#                             / __| | | | |_) | |
+#                            | (__| |_| |  _ <| |___
+#                             \___|\___/|_| \_\_____|
+#
+# Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
+#
+# This software is licensed as described in the file COPYING, which
+# you should have received as part of this distribution. The terms
+# are also available at https://curl.se/docs/copyright.html.
+#
+# You may opt to use, copy, modify, merge, publish, distribute and/or sell
+# copies of the Software, and permit persons to whom the Software is
+# furnished to do so, under the terms of the COPYING file.
+#
+# This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
+# KIND, either express or implied.
+#
+# SPDX-License-Identifier: curl
+#
+###########################################################################
+
+# shellcheck disable=SC2006
+
+prefix='/usr'
+# Used in 'libdir'
+# shellcheck disable=SC2034
+exec_prefix="${prefix}"
+
+usage()
+{
+  cat <<EOF
+Usage: curl-config [OPTION]
+
+Available values for OPTION include:
+
+  --built-shared        says 'yes' if libcurl was built shared
+  --ca                  CA bundle install path
+  --cc                  compiler
+  --cflags              preprocessor and compiler flags
+  --checkfor [version]  check for (lib)curl of the specified version
+  --configure           the arguments given to configure when building curl
+  --features            newline separated list of enabled features
+  --help                display this help and exit
+  --libs                library linking information
+  --prefix              curl install prefix
+  --protocols           newline separated list of enabled protocols
+  --ssl-backends        output the SSL backends libcurl was built to support
+  --static-libs         static libcurl library linking information
+  --version             output version information
+  --vernum              output version as a hexadecimal number
+EOF
+
+  exit "$1"
+}
+
+if test "$#" -eq 0; then
+  usage 1
+fi
+
+while test "$#" -gt 0; do
+  case "$1" in
+  --built-shared)
+    echo 'yes'
+    ;;
+
+  --ca)
+    echo '/etc/ssl/certs/ca-certificates.crt'
+    ;;
+
+  --cc)
+    echo 'gcc'
+    ;;
+
+  --prefix)
+    echo "$prefix"
+    ;;
+
+  --feature|--features)
+    for feature in alt-svc AsynchDNS brotli GSS-API HSTS HTTP2 HTTP3 HTTPS-proxy IDN IPv6 Kerberos Largefile libz NTLM PSL SPNEGO SSL threadsafe TLS-SRP UnixSockets zstd ''; do
+      test -n "$feature" && echo "$feature"
+    done
+    ;;
+
+  --protocols)
+    # shellcheck disable=SC2043
+    for protocol in DICT FILE FTP FTPS GOPHER GOPHERS HTTP HTTPS IMAP IMAPS IPFS IPNS LDAP LDAPS MQTT POP3 POP3S RTMP RTSP SCP SFTP SMB SMBS SMTP SMTPS TELNET TFTP WS WSS; do
+      echo "$protocol"
+    done
+    ;;
+
+  --version)
+    echo 'libcurl 8.17.0'
+    exit 0
+    ;;
+
+  --checkfor)
+    checkfor="$2"
+    cmajor=`echo "$checkfor" | cut -d. -f1`
+    cminor=`echo "$checkfor" | cut -d. -f2`
+    # when extracting the patch part we strip off everything after a
+    # dash as that's used for things like version 1.2.3-pre1
+    cpatch=`echo "$checkfor" | cut -d. -f3 | cut -d- -f1`
+
+    vmajor=`echo '8.17.0' | cut -d. -f1`
+    vminor=`echo '8.17.0' | cut -d. -f2`
+    # when extracting the patch part we strip off everything after a
+    # dash as that's used for things like version 1.2.3-pre1
+    vpatch=`echo '8.17.0' | cut -d. -f3 | cut -d- -f1`
+
+    if test "$vmajor" -gt "$cmajor"; then
+      exit 0
+    fi
+    if test "$vmajor" -eq "$cmajor"; then
+      if test "$vminor" -gt "$cminor"; then
+        exit 0
+      fi
+      if test "$vminor" -eq "$cminor"; then
+        if test "$cpatch" -le "$vpatch"; then
+          exit 0
+        fi
+      fi
+    fi
+
+    echo "requested version $checkfor is newer than existing 8.17.0"
+    exit 1
+    ;;
+
+  --vernum)
+    echo '081100'
+    exit 0
+    ;;
+
+  --help)
+    usage 0
+    ;;
+
+  --cflags)
+    echo ''
+    ;;
+
+  --libs)
+    curllibdir=''
+    if test 'yes' = 'no'; then
+      echo "${curllibdir}-lcurl -lnghttp3 -lngtcp2_crypto_gnutls -lngtcp2 -lnghttp2 -lidn2 -lrtmp -llber -lldap -llber -lssh2 -lssh2 -lpsl -lnettle -lgnutls -lgssapi_krb5 -lzstd -lbrotlidec -lz"
+    else
+      echo "${curllibdir}-lcurl"
+    fi
+    ;;
+
+  --ssl-backends)
+    echo 'GnuTLS'
+    ;;
+
+  --static-libs)
+    if test 'yes' != 'no'; then
+      echo -Wl,-Bstatic -lcurl -Wl,-Bdynamic -lnghttp3 -lngtcp2_crypto_gnutls -lngtcp2 -lnghttp2 -lidn2 -lrtmp -llber -lldap -llber -lssh2 -lssh2 -lpsl -lnettle -lgnutls -lgssapi_krb5 -lzstd -lbrotlidec -lz
+    else
+      echo 'curl was built with static libraries disabled' >&2
+      exit 1
+    fi
+    ;;
+
+  --configure)
+    echo " '--build=`dpkg-architecture -qDEB_BUILD_GNU_TYPE`' '--prefix=/usr' '--includedir=${prefix}/include' '--mandir=${prefix}/share/man' '--infodir=${prefix}/share/info' '--sysconfdir=/etc' '--localstatedir=/var' '--disable-option-checking' '--disable-silent-rules' '--libdir=${prefix}/lib/`dpkg-architecture -qDEB_HOST_MULTIARCH`' '--runstatedir=/run' '--disable-maintainer-mode' '--disable-dependency-tracking' '--enable-symbol-hiding' '--enable-versioned-symbols' '--enable-threaded-resolver' '--with-lber-lib=lber' '--with-gssapi=/usr' '--with-nghttp2' '--with-ngtcp2' '--with-nghttp3' '--includedir=/usr/include/`dpkg-architecture -qDEB_HOST_MULTIARCH`' '--with-zsh-functions-dir=/usr/share/zsh/vendor-completions' '--with-fish-functions-dir=/usr/share/fish/vendor_completions.d' '--with-ca-path=/etc/ssl/certs' '--with-ca-bundle=/etc/ssl/certs/ca-certificates.crt' '--without-libssh' '--with-libssh2' '' '--with-gnutls' 'build_alias=`dpkg-architecture -qDEB_BUILD_GNU_TYPE`' 'CFLAGS=`dpkg-buildflags --get CFLAGS | sed -e "/-ffile-prefix-map=/s|\(-ffile-prefix-map=\)/[^ ]*=.||"` -DCURL_PATCHSTAMP=\"8.17.0-3\"' 'LDFLAGS=-Wl,-z,relro -Wl,-z,now -Wl,--no-undefined' 'CPPFLAGS=`dpkg-buildflags --get CPPFLAGS`'"
+    ;;
+
+  *)
+    echo "unknown option: $1"
+    usage 1
+    ;;
+  esac
+  shift
+done
+
+exit 0
